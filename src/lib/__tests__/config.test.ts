@@ -64,7 +64,7 @@ describe("credentials", () => {
 
   it("creates the config directory if it does not exist", async () => {
     const { saveCredentials } = await loadConfigModule();
-    const configDir = join(tempDir, ".smpx");
+    const configDir = join(tempDir, ".samplex");
     expect(existsSync(configDir)).toBe(false);
     saveCredentials(sampleCreds);
     expect(existsSync(configDir)).toBe(true);
@@ -72,7 +72,7 @@ describe("credentials", () => {
 
   it("returns null when credentials file contains corrupted JSON", async () => {
     // Write malformed JSON to the credentials file path
-    const configDir = join(tempDir, ".smpx");
+    const configDir = join(tempDir, ".samplex");
     mkdirSync(configDir, { recursive: true });
     writeFileSync(join(configDir, "credentials.json"), "{corrupted: not valid json!!!");
 
@@ -120,6 +120,18 @@ describe("project config", () => {
 
       const loaded = loadProjectConfig();
       expect(loaded).toMatchObject({ slug: "first-slug", name: "Added Name" });
+    } finally {
+      process.chdir(originalCwd);
+    }
+  });
+
+  it("returns null when project config contains corrupted JSON", async () => {
+    const originalCwd = process.cwd();
+    process.chdir(tempDir);
+    try {
+      writeFileSync(join(tempDir, ".samplex.config.json"), "{corrupted: not valid json!!!");
+      const { loadProjectConfig } = await loadConfigModule();
+      expect(loadProjectConfig()).toBeNull();
     } finally {
       process.chdir(originalCwd);
     }

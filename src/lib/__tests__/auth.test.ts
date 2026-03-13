@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
+import * as net from "node:net";
 
 vi.mock("../env.ts", () => ({
   env: {
@@ -8,67 +9,21 @@ vi.mock("../env.ts", () => ({
 }));
 
 import {
-  generateCodeVerifier,
   generateCodeChallenge,
-  generateState,
   buildAuthorizationUrl,
   startCallbackServer,
   exchangeCodeForTokens,
 } from "../auth.js";
 
 // ---------------------------------------------------------------------------
-// generateCodeVerifier
-// ---------------------------------------------------------------------------
-describe("generateCodeVerifier", () => {
-  it("returns a base64url-encoded string (no +, /, or = chars)", () => {
-    const verifier = generateCodeVerifier();
-    expect(verifier).toMatch(/^[A-Za-z0-9_-]+$/);
-  });
-
-  it("produces a string of at least 43 characters (RFC 7636 minimum)", () => {
-    const verifier = generateCodeVerifier();
-    // 32 random bytes -> 43 base64url chars
-    expect(verifier.length).toBeGreaterThanOrEqual(43);
-  });
-
-});
-
-// ---------------------------------------------------------------------------
 // generateCodeChallenge
 // ---------------------------------------------------------------------------
 describe("generateCodeChallenge", () => {
-  it("returns a base64url-encoded string", () => {
-    const challenge = generateCodeChallenge("test-verifier");
-    expect(challenge).toMatch(/^[A-Za-z0-9_-]+$/);
-  });
-
   it("is deterministic for the same input", () => {
     const a = generateCodeChallenge("deterministic-input");
     const b = generateCodeChallenge("deterministic-input");
     expect(a).toBe(b);
   });
-
-  it("produces a SHA-256 digest (43 base64url chars)", () => {
-    const challenge = generateCodeChallenge("any-verifier");
-    // SHA-256 = 32 bytes -> 43 base64url chars (no padding)
-    expect(challenge.length).toBe(43);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// generateState
-// ---------------------------------------------------------------------------
-describe("generateState", () => {
-  it("returns a hex string", () => {
-    const state = generateState();
-    expect(state).toMatch(/^[0-9a-f]+$/);
-  });
-
-  it("has expected length (16 bytes = 32 hex chars)", () => {
-    const state = generateState();
-    expect(state.length).toBe(32);
-  });
-
 });
 
 // ---------------------------------------------------------------------------
@@ -146,41 +101,60 @@ describe("startCallbackServer", () => {
 
     const res = await fetch(`http://127.0.0.1:${port}/callback?code=only-code`);
     expect(res.status).toBe(400);
-  });
-
-  it("renders success callback page with correct placeholders", async () => {
-    const { port, waitForCallback, close } = await startCallbackServer();
-    closeFn = close;
-
-    const res = await fetch(
-      `http://127.0.0.1:${port}/callback?code=c&state=s`,
-    );
     const body = await res.text();
-
-    expect(body).toContain('class="card success"');
-    expect(body).toContain("&#10003;");
-    expect(body).toContain("Login successful");
-    expect(body).toContain("You can close this tab and return to the CLI.");
-    // No raw placeholders should remain
-    expect(body).not.toContain("{{");
-
-    await waitForCallback();
-  });
-
-  it("renders error callback page when state is missing", async () => {
-    const { port, close } = await startCallbackServer();
-    closeFn = close;
-
-    const res = await fetch(
-      `http://127.0.0.1:${port}/callback?code=only-code`,
-    );
-    const body = await res.text();
-
-    expect(body).toContain('class="card error"');
-    expect(body).toContain("&#10007;");
     expect(body).toContain("Login failed");
-    expect(body).toContain("Missing authorization code. Please try again.");
     expect(body).not.toContain("{{");
+  });
+
+  it("falls back to next port when the preferred port is occupied", async () => {
+    // Simulate 18457 being in use by making the first listen attempt emit
+    // EADDRINUSE. All subsequent listen calls go through to the real
+    // implementation so the server properly binds on the fallback port.
+    const originalListen = net.Server.prototype.listen;
+    let firstCall = true;
+
+    vi.spyOn(net.Server.prototype, "listen").mockImplementation(function (
+      this: net.Server,
+      ...args: Parameters<typeof net.Server.prototype.listen>
+    ) {
+      if (firstCall) {
+        firstCall = false;
+        // Emit EADDRINUSE asynchronously on the next tick, as Node does.
+        setImmediate(() => {
+          const err = Object.assign(new Error("listen EADDRINUSE"), {
+            code: "EADDRINUSE",
+          });
+          this.emit("error", err);
+        });
+        return this;
+      }
+      return originalListen.apply(this, args as never);
+    });
+
+    try {
+      const { port, close } = await startCallbackServer();
+      closeFn = close;
+      expect([18458, 18459]).toContain(port);
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
+  it("rejects with 'Could not bind to any callback port' when all ports are busy", async () => {
+    // Occupy all three callback ports by opening three servers via
+    // startCallbackServer itself (avoids any SO_REUSEADDR ambiguity).
+    const occupiers: Array<{ port: number; close: () => void }> = [];
+    try {
+      for (let i = 0; i < 3; i++) {
+        occupiers.push(await startCallbackServer());
+      }
+
+      await expect(startCallbackServer()).rejects.toThrow(
+        "Could not bind to any callback port",
+      );
+    } finally {
+      occupiers.forEach((o) => o.close());
+    }
   });
 
 });

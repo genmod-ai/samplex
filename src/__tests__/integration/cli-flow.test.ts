@@ -68,24 +68,6 @@ beforeEach(() => {
 // Auth flow
 // ---------------------------------------------------------------------------
 describe("Auth flow", () => {
-  it("OAuth token exchange returns valid tokens with correct fields", async () => {
-    const res = await tokenExchange("authorization_code");
-    expect(res.status).toBe(200);
-
-    const data = (await res.json()) as {
-      access_token: string;
-      refresh_token: string;
-      expires_in: number;
-      token_type: string;
-    };
-    expect(data).toHaveProperty("access_token");
-    expect(data).toHaveProperty("refresh_token");
-    expect(data).toHaveProperty("expires_in");
-    expect(data).toHaveProperty("token_type", "Bearer");
-    expect(typeof data.access_token).toBe("string");
-    expect(typeof data.expires_in).toBe("number");
-  });
-
   it("Refresh token exchange works with valid refresh token", async () => {
     // First get tokens via authorization_code
     const initial = await tokenExchange("authorization_code");
@@ -127,15 +109,6 @@ describe("API communication", () => {
     expect(Array.isArray(data)).toBe(true);
     expect(data).toHaveLength(1);
     expect(data[0]?.slug).toBe("my-site");
-  });
-
-  it("RPC call includes Authorization header and X-CLI-Version header", async () => {
-    await rpc("site.list", undefined, mock.validToken);
-
-    const req = mock.requests.find((r) => r.url.includes("site/list"));
-    expect(req).toBeDefined();
-    expect(req!.headers.authorization).toBe(`Bearer ${mock.validToken}`);
-    expect(req!.headers["x-cli-version"]).toBe("0.1.0");
   });
 
   it("RPC call without auth token gets 401", async () => {

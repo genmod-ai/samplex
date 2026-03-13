@@ -2,9 +2,13 @@ import { createServer, type IncomingMessage, type ServerResponse, type Server } 
 
 export interface MockSite {
   slug: string;
+  siteSlug: string;
   name: string;
   domain: string;
   createdAt: string;
+  bundleSizeBytes: number;
+  viewCount: number;
+  status: string;
 }
 
 export interface RecordedRequest {
@@ -160,9 +164,13 @@ export function createMockApiServer(): MockApiServer {
 
     addSite(site: Partial<MockSite> & { slug: string }) {
       sites.push({
+        siteSlug: site.slug,
         name: site.name || site.slug,
         domain: site.domain || `${site.slug}.sample.app`,
         createdAt: site.createdAt || new Date().toISOString(),
+        bundleSizeBytes: site.bundleSizeBytes ?? 1024,
+        viewCount: site.viewCount ?? 0,
+        status: site.status ?? "active",
         ...site,
       });
     },
