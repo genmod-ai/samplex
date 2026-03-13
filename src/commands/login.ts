@@ -1,6 +1,6 @@
 import open from "open";
-import ora from "ora";
-import chalk from "chalk";
+import pc from "picocolors";
+import { Spinner } from "picospinner";
 import {
   generateCodeVerifier,
   generateCodeChallenge,
@@ -15,7 +15,8 @@ import { log } from "../lib/logger.js";
 const CLI_CLIENT_ID = "samplex-cli";
 
 export async function loginCommand(): Promise<void> {
-  const spinner = ora("Starting login...").start();
+  const spinner = new Spinner("Starting login...");
+  spinner.start();
 
   let close: (() => void) | undefined;
 
@@ -40,12 +41,12 @@ export async function loginCommand(): Promise<void> {
     });
     log.debug("Authorization URL:", authUrl);
 
-    spinner.text = "Opening browser for login...";
+    spinner.setText("Opening browser for login...");
 
     // Open browser
     await open(authUrl);
-    spinner.text = "Waiting for login in browser...";
-    console.log(`\n  If the browser didn't open, visit:\n  ${chalk.cyan(authUrl)}\n`);
+    spinner.setText("Waiting for login in browser...");
+    console.log(`\n  If the browser didn't open, visit:\n  ${pc.cyan(authUrl)}\n`);
 
     // Wait for callback
     const result = await server.waitForCallback();
@@ -58,7 +59,7 @@ export async function loginCommand(): Promise<void> {
 
     // Exchange code for tokens
     log.debug("Received callback, exchanging code for tokens");
-    spinner.text = "Exchanging code for tokens...";
+    spinner.setText("Exchanging code for tokens...");
     const tokens = await exchangeCodeForTokens(
       result.code,
       codeVerifier,
@@ -74,7 +75,7 @@ export async function loginCommand(): Promise<void> {
       userEmail: "", // Will be populated from token payload
     });
 
-    spinner.succeed(chalk.green("Logged in successfully!"));
+    spinner.succeed(pc.green("Logged in successfully!"));
   } catch (error) {
     spinner.fail(`Login failed: ${error instanceof Error ? error.message : "Unknown error"}`);
     process.exit(1);

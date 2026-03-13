@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { existsSync, statSync, readdirSync } from "node:fs";
 import { resolve, join, relative } from "node:path";
-import chalk from "chalk";
-import ora from "ora";
+import pc from "picocolors";
+import { Spinner } from "picospinner";
 import * as tar from "tar";
 import { rpcUpload } from "../lib/api.js";
 import { loadProjectConfig, saveProjectConfig } from "../lib/config.js";
@@ -54,7 +54,8 @@ export async function deployCommand(
   dir?: string,
   options?: { slug?: string; name?: string },
 ): Promise<void> {
-  const spinner = ora("Preparing deploy...").start();
+  const spinner = new Spinner("Preparing deploy...");
+  spinner.start();
 
   try {
     const outputDir = findOutputDir(dir);
@@ -62,7 +63,7 @@ export async function deployCommand(
     const { files: entries, totalSize } = walkDir(outputDir);
     const fileCount = entries.length;
 
-    spinner.text = `Found ${fileCount} files (${(totalSize / 1024).toFixed(1)}KB) in ${outputDir}`;
+    spinner.setText(`Found ${fileCount} files (${(totalSize / 1024).toFixed(1)}KB) in ${outputDir}`);
     log.debug("Total size:", totalSize, "bytes,", fileCount, "files");
 
     // Resolve slug: --slug flag > .samplex.config.json > let server generate one
@@ -71,14 +72,14 @@ export async function deployCommand(
     if (slug) {
       const slugError = validateSlug(slug);
       if (slugError) {
-        spinner.fail(chalk.red(`Invalid slug "${slug}": ${slugError}`));
+        spinner.fail(pc.red(`Invalid slug "${slug}": ${slugError}`));
         process.exit(1);
       }
       log.debug("Using slug:", slug, options?.slug ? "(from --slug)" : "(from .samplex.config.json)");
     }
 
     // Create tar.gz archive
-    spinner.text = "Creating archive...";
+    spinner.setText("Creating archive...");
     log.debug("Archiving", entries.length, "files");
 
     const MAX_ARCHIVE_BYTES = 100 * 1024 * 1024; // 100 MB
@@ -107,7 +108,7 @@ export async function deployCommand(
     log.debug("Archive SHA-256:", sha256);
 
     // Upload via oRPC (server enforces limits)
-    spinner.text = "Uploading...";
+    spinner.setText("Uploading...");
     const archiveBlob = new Blob([archiveBuffer], { type: "application/gzip" });
 
     const result = await rpcUpload<{
@@ -135,8 +136,8 @@ export async function deployCommand(
     });
 
     spinner.succeed(
-      chalk.green(
-        `Deployed to ${chalk.bold(result.url)}` +
+      pc.green(
+        `Deployed to ${pc.bold(result.url)}` +
           ` (${result.filesUploaded} files, ${(result.totalSize / 1024).toFixed(1)}KB)`,
       ),
     );

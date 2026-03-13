@@ -1,5 +1,5 @@
 import { env } from "./env";
-import chalk from "chalk";
+import pc from "picocolors";
 
 const LEVELS = { debug: 0, info: 1, warn: 2, error: 3, silent: 4 } as const;
 
@@ -8,7 +8,7 @@ const threshold = LEVELS[env.SAMPLEX_LOG_LEVEL];
 export const log = {
   debug(...args: unknown[]) {
     if (threshold <= LEVELS.debug) {
-      console.error(chalk.gray("[debug]"), ...args);
+      console.error(pc.gray("[debug]"), ...args);
     }
   },
   info(...args: unknown[]) {
@@ -18,12 +18,12 @@ export const log = {
   },
   warn(...args: unknown[]) {
     if (threshold <= LEVELS.warn) {
-      console.error(chalk.yellow("[warn]"), ...args);
+      console.error(pc.yellow("[warn]"), ...args);
     }
   },
   error(...args: unknown[]) {
     if (threshold <= LEVELS.error) {
-      console.error(chalk.red("[error]"), ...args);
+      console.error(pc.red("[error]"), ...args);
     }
   },
 };

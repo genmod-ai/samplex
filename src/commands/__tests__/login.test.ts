@@ -25,16 +25,15 @@ vi.mock("../../lib/logger.js", () => ({
 vi.mock("open", () => ({ default: vi.fn() }));
 
 const spinner = {
-  text: "",
+  start: vi.fn(),
+  setText: vi.fn(),
   succeed: vi.fn(),
   fail: vi.fn(),
-  start() {
-    return this;
-  },
+  stop: vi.fn(),
 };
 
-vi.mock("ora", () => ({
-  default: vi.fn(() => spinner),
+vi.mock("picospinner", () => ({
+  Spinner: class { constructor() { return spinner; } },
 }));
 
 // ---------------------------------------------------------------------------
@@ -81,9 +80,11 @@ const GOOD_TOKENS = {
 let exitSpy: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
-  spinner.text = "";
+  spinner.start.mockReset();
+  spinner.setText.mockReset();
   spinner.succeed.mockReset();
   spinner.fail.mockReset();
+  spinner.stop.mockReset();
 
   exitSpy = vi
     .spyOn(process, "exit")

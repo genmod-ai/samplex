@@ -1,4 +1,4 @@
-import chalk from "chalk";
+import pc from "picocolors";
 import { rpc } from "../lib/api.js";
 
 interface Site {
@@ -17,15 +17,15 @@ export async function listCommand(): Promise<void> {
       return;
     }
 
-    console.log(chalk.bold("\nYour sites:\n"));
+    console.log(pc.bold("\nYour sites:\n"));
     console.log(
-      chalk.gray("  " + "SLUG".padEnd(25) + "SIZE".padEnd(10) + "VIEWS".padEnd(10) + "STATUS"),
+      pc.gray("  " + "SLUG".padEnd(25) + "SIZE".padEnd(10) + "VIEWS".padEnd(10) + "STATUS"),
     );
-    console.log(chalk.gray("  " + "-".repeat(55)));
+    console.log(pc.gray("  " + "-".repeat(55)));
 
     for (const s of sites) {
       const size = `${(s.bundleSizeBytes / 1024).toFixed(0)}KB`;
-      const status = s.status === "active" ? chalk.green("active") : chalk.red("disabled");
+      const status = s.status === "active" ? pc.green("active") : pc.red("disabled");
       console.log(
         `  ${s.siteSlug.padEnd(25)}${size.padEnd(10)}${String(s.viewCount).padEnd(10)}${status}`,
       );

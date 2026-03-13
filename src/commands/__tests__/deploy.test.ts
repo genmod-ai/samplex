@@ -21,18 +21,18 @@ vi.mock("../../lib/logger.js", () => ({
   log: { debug: vi.fn(), info: vi.fn(), error: vi.fn() },
 }));
 
-// Shared spinner instance so tests can inspect `.text` after the call.
+// Shared spinner instance so tests can inspect calls after the command runs.
 const spinner = {
   text: "",
+  start: vi.fn(),
+  setText: vi.fn((t: string) => { spinner.text = t; }),
   succeed: vi.fn(),
   fail: vi.fn(),
-  start() {
-    return this;
-  },
+  stop: vi.fn(),
 };
 
-vi.mock("ora", () => ({
-  default: vi.fn(() => spinner),
+vi.mock("picospinner", () => ({
+  Spinner: class { constructor() { return spinner; } },
 }));
 
 // ---------------------------------------------------------------------------
@@ -69,8 +69,11 @@ beforeEach(() => {
 
   // Reset shared spinner state
   spinner.text = "";
+  spinner.start.mockReset();
+  spinner.setText.mockReset().mockImplementation((t: string) => { spinner.text = t; });
   spinner.succeed.mockReset();
   spinner.fail.mockReset();
+  spinner.stop.mockReset();
 
   // Prevent process.exit from terminating the runner; make it throw instead.
   exitSpy = vi
@@ -172,26 +175,11 @@ describe("walkDir — file count and size", () => {
     process.chdir(tempDir);
     rpcUploadMock.mockResolvedValue(DEFAULT_RESULT);
 
-    // Track every value assigned to spinner.text
-    const textHistory: string[] = [];
-    Object.defineProperty(spinner, "text", {
-      get() {
-        return textHistory[textHistory.length - 1] ?? "";
-      },
-      set(v: string) {
-        textHistory.push(v);
-      },
-      configurable: true,
-    });
-
     await deployCommand();
 
-    // Restore plain property so later tests aren't affected
-    delete (spinner as Record<string, unknown>).text;
-    (spinner as Record<string, unknown>).text = "";
-
-    // deployCommand sets spinner.text to the "Found N files (X.XKB) in ..." string
-    const foundLine = textHistory.find((t) => t.startsWith("Found"));
+    // deployCommand calls spinner.setText with the "Found N files (X.XKB) in ..." string
+    const textCalls = spinner.setText.mock.calls.map((c: [string]) => c[0]);
+    const foundLine = textCalls.find((t: string) => t.startsWith("Found"));
     expect(foundLine).toBeDefined();
     expect(foundLine).toMatch(/Found 3 files/);
     expect(foundLine).toMatch(/1\.0KB/);
