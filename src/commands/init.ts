@@ -8,13 +8,13 @@ export async function initCommand(options: { slug?: string; name?: string }): Pr
   if (!options.slug && !options.name) {
     // Show current config
     if (existing) {
-      console.log(chalk.bold("Current .smpx.config.json config:"));
+      console.log(chalk.bold("Current .samplex.config.json config:"));
       if (existing.slug) console.log(`  slug: ${chalk.cyan(existing.slug)}`);
       if (existing.name) console.log(`  name: ${existing.name}`);
     } else {
-      console.log("No .smpx.config.json found in this directory.");
+      console.log("No .samplex.config.json found in this directory.");
       console.log(
-        `Run ${chalk.cyan("smpx init --slug <slug>")} to create one, or it will be created on first deploy.`,
+        `Run ${chalk.cyan("samplex init --slug <slug>")} to create one, or it will be created on first deploy.`,
       );
     }
     return;
@@ -36,7 +36,7 @@ export async function initCommand(options: { slug?: string; name?: string }): Pr
 
   saveProjectConfig(config);
 
-  console.log(chalk.green("Saved .smpx.config.json"));
+  console.log(chalk.green("Saved .samplex.config.json"));
   if (options.slug) {
     console.log(`  slug: ${chalk.cyan(options.slug)}`);
     if (existing?.slug && existing.slug !== options.slug) {

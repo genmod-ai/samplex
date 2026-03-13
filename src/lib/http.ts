@@ -5,7 +5,8 @@ import { CLI_VERSION, USER_AGENT } from "./version";
 const API_BASE = env.SAMPLEX_API_URL;
 
 export function apiUrl(path: string): string {
-  return `${API_BASE}${path}`;
+  const separator = path.startsWith("/") ? "" : "/";
+  return `${API_BASE}${separator}${path}`;
 }
 
 export function baseHeaders(): Record<string, string> {
@@ -15,13 +16,24 @@ export function baseHeaders(): Record<string, string> {
   };
 }
 
+const DEFAULT_TIMEOUT_MS = 30_000;
+const UPLOAD_TIMEOUT_MS = 300_000;
+
 export async function apiFetch(
   url: string,
-  init: RequestInit & { headers?: Record<string, string> } = {},
+  init: RequestInit & { headers?: Record<string, string>; timeoutMs?: number } = {},
 ): Promise<Response> {
-  const headers = { ...baseHeaders(), ...init.headers };
-  log.debug(`fetch ${init.method ?? "GET"} →`, url);
-  const response = await fetch(url, { ...init, headers });
+  const { timeoutMs, ...fetchInit } = init;
+  const headers = { ...baseHeaders(), ...fetchInit.headers };
+  const timeout = timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  log.debug(`fetch ${fetchInit.method ?? "GET"} →`, url);
+  const response = await fetch(url, {
+    ...fetchInit,
+    headers,
+    signal: AbortSignal.timeout(timeout),
+  });
   log.debug(`  ← ${response.status} ${response.statusText}`);
   return response;
 }
+
+export { UPLOAD_TIMEOUT_MS };

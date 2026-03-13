@@ -17,11 +17,14 @@ const CLI_CLIENT_ID = "samplex-cli";
 export async function loginCommand(): Promise<void> {
   const spinner = ora("Starting login...").start();
 
+  let close: (() => void) | undefined;
+
   try {
     // Start local callback server
-    const { port, waitForCallback, close } = await startCallbackServer();
-    const redirectUri = `http://127.0.0.1:${port}/callback`;
-    log.debug("Callback server listening on port", port);
+    const server = await startCallbackServer();
+    close = server.close;
+    const redirectUri = `http://127.0.0.1:${server.port}/callback`;
+    log.debug("Callback server listening on port", server.port);
 
     // Generate PKCE values
     const codeVerifier = generateCodeVerifier();
@@ -44,11 +47,10 @@ export async function loginCommand(): Promise<void> {
     spinner.text = "Waiting for login in browser...";
 
     // Wait for callback
-    const result = await waitForCallback();
+    const result = await server.waitForCallback();
 
     // Validate state
     if (result.state !== state) {
-      close();
       spinner.fail("Login failed: state mismatch (possible CSRF attack)");
       process.exit(1);
     }
@@ -71,10 +73,11 @@ export async function loginCommand(): Promise<void> {
       userEmail: "", // Will be populated from token payload
     });
 
-    close();
     spinner.succeed(chalk.green("Logged in successfully!"));
   } catch (error) {
     spinner.fail(`Login failed: ${error instanceof Error ? error.message : "Unknown error"}`);
     process.exit(1);
+  } finally {
+    close?.();
   }
 }

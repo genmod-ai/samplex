@@ -62,7 +62,7 @@ export async function deployCommand(
     spinner.text = `Found ${fileCount} files (${(totalSize / 1024).toFixed(1)}KB) in ${outputDir}`;
     log.debug("Total size:", totalSize, "bytes,", fileCount, "files");
 
-    // Resolve slug: --slug flag > .smpx.config.json > let server generate one
+    // Resolve slug: --slug flag > .samplex.config.json > let server generate one
     const projectConfig = loadProjectConfig();
     const slug = options?.slug || projectConfig?.slug;
     if (slug) {
@@ -71,25 +71,36 @@ export async function deployCommand(
         spinner.fail(chalk.red(`Invalid slug "${slug}": ${slugError}`));
         process.exit(1);
       }
-      log.debug("Using slug:", slug, options?.slug ? "(from --slug)" : "(from .smpx.config.json)");
+      log.debug("Using slug:", slug, options?.slug ? "(from --slug)" : "(from .samplex.config.json)");
     }
 
     // Create tar.gz archive
     spinner.text = "Creating archive...";
     log.debug("Archiving", entries.length, "files");
 
+    const MAX_ARCHIVE_BYTES = 100 * 1024 * 1024; // 100 MB
     const archive = await tar.create({ gzip: true, cwd: outputDir, portable: true }, entries);
 
-    // tar.create returns a readable stream — collect into Buffer
+    // Stream into buffer while computing SHA-256 hash in one pass
+    const hash = createHash("sha256");
     const chunks: Buffer[] = [];
+    let archiveSize = 0;
     for await (const chunk of archive) {
-      chunks.push(Buffer.from(chunk));
+      const buf = Buffer.from(chunk);
+      archiveSize += buf.length;
+      if (archiveSize > MAX_ARCHIVE_BYTES) {
+        throw new Error(
+          `Archive exceeds ${MAX_ARCHIVE_BYTES / 1024 / 1024}MB limit. ` +
+            "Consider excluding large files or using a smaller build output.",
+        );
+      }
+      chunks.push(buf);
+      hash.update(buf);
     }
     const archiveBuffer = Buffer.concat(chunks);
     log.debug("Archive size:", archiveBuffer.length, "bytes");
 
-    // Compute SHA-256 hash for integrity verification
-    const sha256 = createHash("sha256").update(archiveBuffer).digest("hex");
+    const sha256 = hash.digest("hex");
     log.debug("Archive SHA-256:", sha256);
 
     // Upload via oRPC (server enforces limits)
@@ -114,7 +125,7 @@ export async function deployCommand(
       },
     );
 
-    // Save slug + name to .smpx.config.json so subsequent deploys update the same site
+    // Save slug + name to .samplex.config.json so subsequent deploys update the same site
     saveProjectConfig({
       slug: result.siteSlug,
       ...(options?.name && { name: options.name }),

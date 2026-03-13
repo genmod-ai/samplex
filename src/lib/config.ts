@@ -2,9 +2,9 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync }
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
-const CONFIG_DIR = join(homedir(), ".smpx");
+const CONFIG_DIR = join(homedir(), ".samplex");
 const CREDENTIALS_FILE = join(CONFIG_DIR, "credentials.json");
-const PROJECT_CONFIG_FILE = ".smpx.config.json";
+const PROJECT_CONFIG_FILE = ".samplex.config.json";
 
 interface Credentials {
   accessToken: string;
@@ -36,7 +36,7 @@ export function clearCredentials(): void {
   rmSync(CREDENTIALS_FILE, { force: true });
 }
 
-// --- Project config (.smpx.config.json in project root) ---
+// --- Project config (.samplex.config.json in project root) ---
 
 interface ProjectConfig {
   slug?: string;

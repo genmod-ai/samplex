@@ -18,7 +18,7 @@ program.command("login").description("Authenticate with sample.app").action(logi
 program
   .command("deploy [dir]")
   .description("Deploy a directory to a preview URL")
-  .option("-s, --slug <slug>", "Site slug (used in URL, saved to .smpx.config.json)")
+  .option("-s, --slug <slug>", "Site slug (used in URL, saved to .samplex.config.json)")
   .option("-n, --name <name>", "Display name for the site")
   .action(deployCommand);
 
@@ -31,7 +31,7 @@ program
 
 program
   .command("init")
-  .description("Initialize or view project config (.smpx.config.json)")
+  .description("Initialize or view project config (.samplex.config.json)")
   .option("-s, --slug <slug>", "Set the site slug for this project")
   .option("-n, --name <name>", "Set a display name for the site")
   .action(initCommand);

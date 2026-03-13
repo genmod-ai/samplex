@@ -1,5 +1,5 @@
 import { loadCredentials, saveCredentials, clearCredentials } from "./config";
-import { apiFetch, apiUrl } from "./http";
+import { apiFetch, apiUrl, UPLOAD_TIMEOUT_MS } from "./http";
 import { log } from "./logger";
 import { CLI_VERSION } from "./version";
 
@@ -162,6 +162,7 @@ export async function rpcUpload<T = unknown>(
     method: "POST",
     headers: { Authorization: `Bearer ${credentials.accessToken}` },
     body: form,
+    timeoutMs: UPLOAD_TIMEOUT_MS,
   });
 
   handleResponseErrors(response);
