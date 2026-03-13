@@ -32,9 +32,7 @@ describe("apiFetch", () => {
   });
 
   function mockFetch(status = 200, body = "{}") {
-    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(body, { status }),
-    );
+    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(body, { status }));
     return spy;
   }
 

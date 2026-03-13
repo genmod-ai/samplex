@@ -28,12 +28,14 @@ import { CLI_VERSION } from "../version.js";
 
 const FAR_FUTURE = Date.now() + 10 * 60 * 1000; // 10 min from now — not expiring
 
-function validCreds(overrides: Partial<{
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: number;
-  userEmail: string;
-}> = {}) {
+function validCreds(
+  overrides: Partial<{
+    accessToken: string;
+    refreshToken: string;
+    expiresAt: number;
+    userEmail: string;
+  }> = {},
+) {
   return {
     accessToken: "access-token-abc",
     refreshToken: "refresh-token-xyz",
@@ -74,9 +76,9 @@ describe("rpc()", () => {
 
   it("makes an authenticated POST with Bearer token and correct URL", async () => {
     mockLoadCredentials.mockReturnValue(validCreds());
-    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      makeResponse(200, { ok: true }),
-    );
+    const spy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(makeResponse(200, { ok: true }));
 
     await rpc("model.generate", { prompt: "hello" });
 
@@ -91,9 +93,7 @@ describe("rpc()", () => {
 
   it("sends POST without Content-Type or body when no input is provided", async () => {
     mockLoadCredentials.mockReturnValue(validCreds());
-    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      makeResponse(200, {}),
-    );
+    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(makeResponse(200, {}));
 
     await rpc("model.list");
 
@@ -134,9 +134,7 @@ describe("rpc()", () => {
 
   it("on success: returns parsed JSON", async () => {
     mockLoadCredentials.mockReturnValue(validCreds());
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      makeResponse(200, { result: 42 }),
-    );
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(makeResponse(200, { result: 42 }));
 
     const result = await rpc<{ result: number }>("some.procedure");
     expect(result).toEqual({ result: 42 });
@@ -160,9 +158,9 @@ describe("rpcUpload()", () => {
 
   it("makes an authenticated POST with FormData to the correct URL", async () => {
     mockLoadCredentials.mockReturnValue(validCreds());
-    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      makeResponse(200, { json: { id: "abc" }, meta: [] }),
-    );
+    const spy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(makeResponse(200, { json: { id: "abc" }, meta: [] }));
 
     const blob = new Blob(["file contents"], { type: "text/plain" });
     await rpcUpload("upload.artifact", { blob, fieldName: "artifact" }, { name: "test" });
@@ -229,9 +227,9 @@ describe("token refresh", () => {
   it("uses token as-is when it is far from expiry", async () => {
     const creds = validCreds({ accessToken: "fresh-token", expiresAt: FAR_FUTURE });
     mockLoadCredentials.mockReturnValue(creds);
-    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      makeResponse(200, { data: "ok" }),
-    );
+    const spy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(makeResponse(200, { data: "ok" }));
 
     await rpc("test.proc");
 
@@ -253,7 +251,8 @@ describe("token refresh", () => {
       expires_in: 3600,
     };
 
-    const spy = vi.spyOn(globalThis, "fetch")
+    const spy = vi
+      .spyOn(globalThis, "fetch")
       // First call: the token refresh endpoint
       .mockResolvedValueOnce(makeResponse(200, refreshPayload))
       // Second call: the actual RPC call

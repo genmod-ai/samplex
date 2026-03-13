@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import callbackHtml from "./callback.html" ;
+import callbackHtml from "./callback.html";
 import { apiFetch, apiUrl } from "./http";
 
 function renderCallbackPage(success: boolean): string {

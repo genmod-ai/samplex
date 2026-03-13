@@ -83,9 +83,7 @@ describe("startCallbackServer", () => {
     const { port, waitForCallback, close } = await startCallbackServer();
     closeFn = close;
 
-    const res = await fetch(
-      `http://127.0.0.1:${port}/callback?code=test-code&state=test-state`,
-    );
+    const res = await fetch(`http://127.0.0.1:${port}/callback?code=test-code&state=test-state`);
 
     expect(res.status).toBe(200);
     const body = await res.text();
@@ -149,14 +147,11 @@ describe("startCallbackServer", () => {
         occupiers.push(await startCallbackServer());
       }
 
-      await expect(startCallbackServer()).rejects.toThrow(
-        "Could not bind to any callback port",
-      );
+      await expect(startCallbackServer()).rejects.toThrow("Could not bind to any callback port");
     } finally {
       occupiers.forEach((o) => o.close());
     }
   });
-
 });
 
 // ---------------------------------------------------------------------------

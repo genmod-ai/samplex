@@ -25,14 +25,20 @@ vi.mock("../../lib/logger.js", () => ({
 const spinner = {
   text: "",
   start: vi.fn(),
-  setText: vi.fn((t: string) => { spinner.text = t; }),
+  setText: vi.fn((t: string) => {
+    spinner.text = t;
+  }),
   succeed: vi.fn(),
   fail: vi.fn(),
   stop: vi.fn(),
 };
 
 vi.mock("picospinner", () => ({
-  Spinner: class { constructor() { return spinner; } },
+  Spinner: class {
+    constructor() {
+      return spinner;
+    }
+  },
 }));
 
 // ---------------------------------------------------------------------------
@@ -70,7 +76,9 @@ beforeEach(() => {
   // Reset shared spinner state
   spinner.text = "";
   spinner.start.mockReset();
-  spinner.setText.mockReset().mockImplementation((t: string) => { spinner.text = t; });
+  spinner.setText.mockReset().mockImplementation((t: string) => {
+    spinner.text = t;
+  });
   spinner.succeed.mockReset();
   spinner.fail.mockReset();
   spinner.stop.mockReset();
@@ -167,9 +175,9 @@ describe("walkDir — file count and size", () => {
     mkdirSync(join(distDir, "assets"));
 
     // Write files with known byte sizes (ASCII → 1 byte per char)
-    writeFileSync(join(distDir, "index.html"), "A".repeat(100));         // 100 B
+    writeFileSync(join(distDir, "index.html"), "A".repeat(100)); // 100 B
     writeFileSync(join(distDir, "assets", "main.css"), "B".repeat(200)); // 200 B
-    writeFileSync(join(distDir, "assets", "app.js"), "C".repeat(700));   // 700 B
+    writeFileSync(join(distDir, "assets", "app.js"), "C".repeat(700)); // 700 B
     // Total: 3 files, 1000 B = 0.976...KB → toFixed(1) → "1.0KB"
 
     process.chdir(tempDir);

@@ -47,25 +47,25 @@ describe("validateSlug", () => {
   describe("invalid characters", () => {
     it("rejects uppercase letters", () => {
       expect(validateSlug("MySlug")).toBe(
-        "Slug must contain only lowercase letters, numbers, and hyphens, and cannot start or end with a hyphen"
+        "Slug must contain only lowercase letters, numbers, and hyphens, and cannot start or end with a hyphen",
       );
     });
 
     it("rejects special characters", () => {
       expect(validateSlug("my_slug")).toBe(
-        "Slug must contain only lowercase letters, numbers, and hyphens, and cannot start or end with a hyphen"
+        "Slug must contain only lowercase letters, numbers, and hyphens, and cannot start or end with a hyphen",
       );
     });
 
     it("rejects slug starting with a hyphen", () => {
       expect(validateSlug("-myslug")).toBe(
-        "Slug must contain only lowercase letters, numbers, and hyphens, and cannot start or end with a hyphen"
+        "Slug must contain only lowercase letters, numbers, and hyphens, and cannot start or end with a hyphen",
       );
     });
 
     it("rejects slug ending with a hyphen", () => {
       expect(validateSlug("myslug-")).toBe(
-        "Slug must contain only lowercase letters, numbers, and hyphens, and cannot start or end with a hyphen"
+        "Slug must contain only lowercase letters, numbers, and hyphens, and cannot start or end with a hyphen",
       );
     });
   });
@@ -73,13 +73,13 @@ describe("validateSlug", () => {
   describe("consecutive hyphens", () => {
     it("rejects double hyphens", () => {
       expect(validateSlug("my--slug")).toBe(
-        'Slug cannot contain consecutive hyphens ("--" is used as a separator)'
+        'Slug cannot contain consecutive hyphens ("--" is used as a separator)',
       );
     });
 
     it("rejects triple hyphens", () => {
       expect(validateSlug("my---slug")).toBe(
-        'Slug cannot contain consecutive hyphens ("--" is used as a separator)'
+        'Slug cannot contain consecutive hyphens ("--" is used as a separator)',
       );
     });
   });

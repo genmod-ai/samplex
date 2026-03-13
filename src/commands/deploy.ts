@@ -63,7 +63,9 @@ export async function deployCommand(
     const { files: entries, totalSize } = walkDir(outputDir);
     const fileCount = entries.length;
 
-    spinner.setText(`Found ${fileCount} files (${(totalSize / 1024).toFixed(1)}KB) in ${outputDir}`);
+    spinner.setText(
+      `Found ${fileCount} files (${(totalSize / 1024).toFixed(1)}KB) in ${outputDir}`,
+    );
     log.debug("Total size:", totalSize, "bytes,", fileCount, "files");
 
     // Resolve slug: --slug flag > .samplex.config.json > let server generate one
@@ -75,7 +77,11 @@ export async function deployCommand(
         spinner.fail(pc.red(`Invalid slug "${slug}": ${slugError}`));
         process.exit(1);
       }
-      log.debug("Using slug:", slug, options?.slug ? "(from --slug)" : "(from .samplex.config.json)");
+      log.debug(
+        "Using slug:",
+        slug,
+        options?.slug ? "(from --slug)" : "(from .samplex.config.json)",
+      );
     }
 
     // Create tar.gz archive

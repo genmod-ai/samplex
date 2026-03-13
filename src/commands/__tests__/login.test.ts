@@ -33,7 +33,11 @@ const spinner = {
 };
 
 vi.mock("picospinner", () => ({
-  Spinner: class { constructor() { return spinner; } },
+  Spinner: class {
+    constructor() {
+      return spinner;
+    }
+  },
 }));
 
 // ---------------------------------------------------------------------------
@@ -41,11 +45,7 @@ vi.mock("picospinner", () => ({
 // ---------------------------------------------------------------------------
 
 import { loginCommand } from "../login.js";
-import {
-  generateState,
-  startCallbackServer,
-  exchangeCodeForTokens,
-} from "../../lib/auth.js";
+import { generateState, startCallbackServer, exchangeCodeForTokens } from "../../lib/auth.js";
 import { saveCredentials } from "../../lib/config.js";
 
 const generateStateMock = generateState as ReturnType<typeof vi.fn>;
