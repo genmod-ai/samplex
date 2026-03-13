@@ -1,9 +1,7 @@
-import { env } from "./env";
 import { loadCredentials, saveCredentials, clearCredentials } from "./config";
+import { apiFetch, apiUrl } from "./http";
 import { log } from "./logger";
-import { CLI_VERSION, USER_AGENT } from "./version";
-
-const API_BASE = env.SMPL_API_URL;
+import { CLI_VERSION } from "./version";
 
 function getUpgradeHint(): string {
   const script = process.argv[1] || "";
@@ -26,6 +24,15 @@ function checkUpgradeRequired(response: Response): void {
   }
 }
 
+function handleResponseErrors(response: Response): void {
+  checkUpgradeRequired(response);
+
+  if (response.status === 401) {
+    clearCredentials();
+    throw new Error("Session expired. Run `samplex login` again.");
+  }
+}
+
 async function getValidCredentials() {
   const credentials = loadCredentials();
   if (!credentials) return null;
@@ -39,13 +46,9 @@ async function getValidCredentials() {
   log.debug("Token expired or expiring soon, refreshing...");
 
   try {
-    const res = await fetch(`${API_BASE}/api/auth/oauth2/token`, {
+    const res = await apiFetch(apiUrl("/api/auth/oauth2/token"), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "User-Agent": USER_AGENT,
-        "X-CLI-Version": CLI_VERSION,
-      },
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         grant_type: "refresh_token",
         refresh_token: credentials.refreshToken,
@@ -82,22 +85,25 @@ async function getValidCredentials() {
   }
 }
 
-export async function rpc<T = unknown>(procedure: string, input?: unknown): Promise<T> {
+async function requireCredentials() {
   const credentials = await getValidCredentials();
   if (!credentials) {
     throw new Error("Not logged in. Run `samplex login` first.");
   }
+  return credentials;
+}
+
+export async function rpc<T = unknown>(procedure: string, input?: unknown): Promise<T> {
+  const credentials = await requireCredentials();
 
   const path = procedure.replaceAll(".", "/");
-  const url = `${API_BASE}/api/rpc/api-reference/${path}`;
+  const url = apiUrl(`/api/rpc/api-reference/${path}`);
 
   log.debug(`RPC ${procedure} →`, url);
   if (input !== undefined) log.debug("  input:", JSON.stringify(input));
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${credentials.accessToken}`,
-    "X-CLI-Version": CLI_VERSION,
-    "User-Agent": USER_AGENT,
   };
   let body: string | undefined;
 
@@ -106,16 +112,9 @@ export async function rpc<T = unknown>(procedure: string, input?: unknown): Prom
     body = JSON.stringify(input);
   }
 
-  const response = await fetch(url, { method: "POST", headers, body });
+  const response = await apiFetch(url, { method: "POST", headers, body });
 
-  log.debug(`  ← ${response.status} ${response.statusText}`);
-
-  checkUpgradeRequired(response);
-
-  if (response.status === 401) {
-    clearCredentials();
-    throw new Error("Session expired. Run `samplex login` again.");
-  }
+  handleResponseErrors(response);
 
   if (!response.ok) {
     const text = await response.text();
@@ -137,13 +136,10 @@ export async function rpcUpload<T = unknown>(
   file: { blob: Blob; fieldName: string },
   input: Record<string, unknown> = {},
 ): Promise<T> {
-  const credentials = await getValidCredentials();
-  if (!credentials) {
-    throw new Error("Not logged in. Run `samplex login` first.");
-  }
+  const credentials = await requireCredentials();
 
   const path = procedure.replaceAll(".", "/");
-  const url = `${API_BASE}/api/rpc/${path}`;
+  const url = apiUrl(`/api/rpc/${path}`);
 
   log.debug(`RPC upload ${procedure} →`, url);
 
@@ -162,24 +158,13 @@ export async function rpcUpload<T = unknown>(
   );
   form.set("0", file.blob);
 
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${credentials.accessToken}`,
-      "X-CLI-Version": CLI_VERSION,
-      "User-Agent": USER_AGENT,
-    },
+    headers: { Authorization: `Bearer ${credentials.accessToken}` },
     body: form,
   });
 
-  log.debug(`  ← ${response.status} ${response.statusText}`);
-
-  checkUpgradeRequired(response);
-
-  if (response.status === 401) {
-    clearCredentials();
-    throw new Error("Session expired. Run `samplex login` again.");
-  }
+  handleResponseErrors(response);
 
   if (!response.ok) {
     const text = await response.text();

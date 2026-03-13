@@ -3,7 +3,7 @@ import chalk from "chalk";
 
 const LEVELS = { debug: 0, info: 1, warn: 2, error: 3, silent: 4 } as const;
 
-const threshold = LEVELS[env.SMPL_LOG_LEVEL];
+const threshold = LEVELS[env.SAMPLEX_LOG_LEVEL];
 
 export const log = {
   debug(...args: unknown[]) {

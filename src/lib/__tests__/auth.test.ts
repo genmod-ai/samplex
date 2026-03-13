@@ -2,8 +2,8 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 
 vi.mock("../env.ts", () => ({
   env: {
-    SMPL_API_URL: "http://localhost:9999",
-    SMPL_LOG_LEVEL: "silent",
+    SAMPLEX_API_URL: "http://localhost:9999",
+    SAMPLEX_LOG_LEVEL: "silent",
   },
 }));
 

@@ -1,8 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { env } from "./env";
 import callbackHtml from "./callback.html" ;
-import { CLI_VERSION, USER_AGENT } from "./version";
+import { apiFetch, apiUrl } from "./http";
 
 function renderCallbackPage(success: boolean): string {
   return callbackHtml
@@ -103,20 +102,16 @@ export async function exchangeCodeForTokens(
   refresh_token: string;
   expires_in: number;
 }> {
-  const response = await fetch(`${env.SMPL_API_URL}/api/auth/oauth2/token`, {
+  const response = await apiFetch(apiUrl("/api/auth/oauth2/token"), {
     method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "User-Agent": USER_AGENT,
-      "X-CLI-Version": CLI_VERSION,
-    },
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       grant_type: "authorization_code",
       code,
       redirect_uri: redirectUri,
       code_verifier: codeVerifier,
       client_id: clientId,
-      resource: `${env.SMPL_API_URL}/api/auth`,
+      resource: apiUrl("/api/auth"),
     }),
   });
 
@@ -138,7 +133,7 @@ export function buildAuthorizationUrl(params: {
   codeChallenge: string;
   state: string;
 }): string {
-  const url = new URL(`${env.SMPL_API_URL}/api/auth/oauth2/authorize`);
+  const url = new URL(apiUrl("/api/auth/oauth2/authorize"));
   url.searchParams.set("response_type", "code");
   url.searchParams.set("client_id", params.clientId);
   url.searchParams.set("redirect_uri", params.redirectUri);
@@ -149,6 +144,6 @@ export function buildAuthorizationUrl(params: {
     "scope",
     "openid profile email offline_access site:deploy site:read site:delete",
   );
-  url.searchParams.set("resource", `${env.SMPL_API_URL}/api/auth`);
+  url.searchParams.set("resource", apiUrl("/api/auth"));
   return url.toString();
 }
