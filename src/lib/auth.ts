@@ -35,6 +35,8 @@ interface AuthCallbackResult {
   state: string;
 }
 
+const CALLBACK_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
 export function startCallbackServer(): Promise<{
   port: number;
   waitForCallback: () => Promise<AuthCallbackResult>;
@@ -42,9 +44,16 @@ export function startCallbackServer(): Promise<{
 }> {
   return new Promise((resolveSetup, rejectSetup) => {
     let resolveCallback: (result: AuthCallbackResult) => void;
-    const callbackPromise = new Promise<AuthCallbackResult>((resolve) => {
+    let rejectCallback: (err: Error) => void;
+    const callbackPromise = new Promise<AuthCallbackResult>((resolve, reject) => {
       resolveCallback = resolve;
+      rejectCallback = reject;
     });
+
+    const timeout = setTimeout(() => {
+      rejectCallback(new Error("Login timed out after 5 minutes. Please try again."));
+      server.close();
+    }, CALLBACK_TIMEOUT_MS);
 
     const server = createServer((req: IncomingMessage, res: ServerResponse) => {
       const url = new URL(req.url!, `http://127.0.0.1`);
@@ -52,6 +61,7 @@ export function startCallbackServer(): Promise<{
         const code = url.searchParams.get("code");
         const state = url.searchParams.get("state");
         if (code && state) {
+          clearTimeout(timeout);
           res.writeHead(200, { "Content-Type": "text/html" });
           res.end(renderCallbackPage(true));
           resolveCallback({ code, state });
