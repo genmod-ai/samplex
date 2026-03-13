@@ -18,10 +18,14 @@
     "access": "public",
     "provenance": false
   },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "tsup src/index.ts --dts",
     "check-types": "tsc --noEmit",
     "dev": "tsup src/index.ts --watch",
+    "prepublishOnly": "npm run build",
     "test": "vitest run"
   },
   "dependencies": {
