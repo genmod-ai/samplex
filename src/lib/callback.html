@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>sample CLI</title>
+<style>
+*{margin:0;box-sizing:border-box}
+html{font-family:"Geist Mono",ui-monospace,monospace;height:100%}
+body{display:flex;align-items:center;justify-content:center;min-height:100%;padding:2rem;background:#fff;color:#0a0a0a}
+.card{max-width:380px;width:100%;border:1px solid #e5e5e5;border-radius:8px;padding:2rem;text-align:center}
+h1{font-size:1.125rem;font-weight:600;margin-bottom:.5rem}
+p{font-size:.875rem;color:#737373}
+.icon{width:48px;height:48px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;font-size:1.25rem}
+.success .icon{background:#f0fdf4;color:#16a34a}
+.error .icon{background:#fef2f2;color:#dc2626}
+.error h1{color:#dc2626}
+@media(prefers-color-scheme:dark){
+body{background:#09090b;color:#fafafa}
+.card{border-color:#27272a}
+p{color:#a1a1aa}
+.success .icon{background:#052e16;color:#4ade80}
+.error .icon{background:#450a0a;color:#f87171}
+.error h1{color:#ef4444}
+}
+</style>
+</head>
+<body>
+<div class="card {{STATE_CLASS}}">
+  <div class="icon">{{ICON}}</div>
+  <h1>{{TITLE}}</h1>
+  <p>{{MESSAGE}}</p>
+</div>
+</body>
+</html>

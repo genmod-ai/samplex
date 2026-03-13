@@ -1,0 +1,30 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env*.local
+
+# IDEs and editors
+.vscode/*
+!.vscode/settings.json
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+
+# Testing
+coverage
+
+# Misc
+*.tgz
+.cache
+tmp
