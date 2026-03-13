@@ -45,6 +45,7 @@ export async function loginCommand(): Promise<void> {
     // Open browser
     await open(authUrl);
     spinner.text = "Waiting for login in browser...";
+    console.log(`\n  If the browser didn't open, visit:\n  ${chalk.cyan(authUrl)}\n`);
 
     // Wait for callback
     const result = await server.waitForCallback();
