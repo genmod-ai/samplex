@@ -1,17 +1,22 @@
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: bunx commitlint --edit {1}
+
 pre-commit:
   parallel: true
   jobs:
     - name: lint
       glob: "*.{ts,js,mjs}"
-      run: npx oxlint {staged_files}
+      run: bunx oxlint {staged_files}
 
     - name: format
       glob: "*.{ts,js,mjs,json,html,css,md,yml,yaml}"
-      run: npx oxfmt {staged_files}
+      run: bunx oxfmt {staged_files}
       stage_fixed: true
 
     - name: typecheck
-      run: npx tsc --noEmit
+      run: bun run check-types
 
     - name: test
-      run: npx vitest run
+      run: bun run test
