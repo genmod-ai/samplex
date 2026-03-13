@@ -134,7 +134,7 @@ describe("successful login", () => {
 
     expect(saveCredentialsMock).toHaveBeenCalledOnce();
 
-    const saved = saveCredentialsMock.mock.calls[0][0];
+    const saved = saveCredentialsMock.mock.calls[0]![0];
     expect(saved.accessToken).toBe("acc-tok");
     expect(saved.refreshToken).toBe("ref-tok");
     expect(saved.userEmail).toBe("");
