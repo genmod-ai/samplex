@@ -35,6 +35,9 @@ function walkDir(dirPath: string, root?: string): { files: string[]; totalSize: 
   const entries = readdirSync(dirPath, { withFileTypes: true });
   for (const entry of entries) {
     const fullPath = join(dirPath, entry.name);
+    if (entry.isSymbolicLink()) {
+      continue;
+    }
     if (entry.isDirectory()) {
       const sub = walkDir(fullPath, base);
       files.push(...sub.files);
