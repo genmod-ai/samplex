@@ -11,6 +11,7 @@
   ],
   "homepage": "https://sample.app",
   "license": "Apache-2.0",
+  "author": "Rahul Mehra",
   "repository": {
     "type": "git",
     "url": "https://github.com/genmod-ai/samplex.git"
