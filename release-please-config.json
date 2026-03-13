@@ -17,7 +17,9 @@
         { "type": "build", "section": "Build System", "hidden": true }
       ],
       "draft": false,
-      "prerelease": false
+      "prerelease": false,
+      "include-component-in-tag": false,
+      "include-v-in-tag": false
     }
   }
 }
