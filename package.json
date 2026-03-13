@@ -1,6 +1,6 @@
 {
   "name": "samplex",
-  "version": "0.1.4",
+  "version": "1.0.0",
   "description": "Deploy static sites to shareable preview URLs from the command line",
   "keywords": [
     "cli",
