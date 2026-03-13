@@ -17,6 +17,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    "allowArbitraryExtensions": true,
     "outDir": "./dist",
     "rootDir": "./src",
     "types": ["bun", "vitest/globals"]
