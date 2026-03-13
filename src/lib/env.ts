@@ -6,4 +6,5 @@ export const env = {
     | "warn"
     | "error"
     | "silent",
+  SAMPLE_API_KEY: process.env.SAMPLE_API_KEY || "",
 };
