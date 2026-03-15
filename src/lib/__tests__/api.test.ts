@@ -1,10 +1,15 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 
-vi.mock("../env.ts", () => ({
-  env: {
+const { mockEnv } = vi.hoisted(() => ({
+  mockEnv: {
     SAMPLEX_API_URL: "http://localhost:9999",
     SAMPLEX_LOG_LEVEL: "silent",
+    SAMPLEX_API_KEY: "",
   },
+}));
+
+vi.mock("../env.ts", () => ({
+  env: mockEnv,
 }));
 
 const { mockLoadCredentials, mockSaveCredentials, mockClearCredentials } = vi.hoisted(() => ({
@@ -61,17 +66,21 @@ function makeResponse(
 }
 
 // ---------------------------------------------------------------------------
-// rpc()
+// rpc() — OAuth (default, no API key)
 // ---------------------------------------------------------------------------
 describe("rpc()", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
+    mockEnv.SAMPLEX_API_KEY = "";
   });
 
-  it("throws 'Not logged in' when credentials are null", async () => {
+  it("throws 'Not logged in' with API key hint when credentials are null", async () => {
     mockLoadCredentials.mockReturnValue(null);
-    await expect(rpc("some.procedure")).rejects.toThrow("Not logged in");
+    const err = await rpc("some.procedure").catch((e: Error) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error).message).toContain("Not logged in");
+    expect((err as Error).message).toContain("SAMPLEX_API_KEY");
   });
 
   it("makes an authenticated POST with Bearer token and correct URL", async () => {
@@ -142,12 +151,87 @@ describe("rpc()", () => {
 });
 
 // ---------------------------------------------------------------------------
+// rpc() — API key auth (SAMPLEX_API_KEY set)
+// ---------------------------------------------------------------------------
+describe("rpc() with SAMPLEX_API_KEY", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.clearAllMocks();
+    mockEnv.SAMPLEX_API_KEY = "";
+  });
+
+  it("uses x-api-key header instead of Bearer token when SAMPLEX_API_KEY is set", async () => {
+    mockEnv.SAMPLEX_API_KEY = "sk_test_key_123";
+    const spy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(makeResponse(200, { ok: true }));
+
+    await rpc("site.list");
+
+    const [, init] = spy.mock.calls[0]!;
+    const headers = init?.headers as Record<string, string>;
+    expect(headers["x-api-key"]).toBe("sk_test_key_123");
+    expect(headers["Authorization"]).toBeUndefined();
+  });
+
+  it("does not check or require OAuth credentials when API key is set", async () => {
+    mockEnv.SAMPLEX_API_KEY = "sk_test_key_123";
+    mockLoadCredentials.mockReturnValue(null); // No OAuth creds
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(makeResponse(200, { ok: true }));
+
+    // Should not throw "Not logged in" — API key is sufficient
+    await expect(rpc("site.list")).resolves.toEqual({ ok: true });
+    expect(mockLoadCredentials).not.toHaveBeenCalled();
+  });
+
+  it("does not attempt token refresh when API key is set", async () => {
+    mockEnv.SAMPLEX_API_KEY = "sk_test_key_123";
+    const spy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(makeResponse(200, { data: "ok" }));
+
+    await rpc("site.list");
+
+    // Only one fetch (the RPC call), no refresh call
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0]![0]).toContain("/api/rpc/");
+  });
+
+  it("on 401 with API key: throws API key error and does not clear credentials", async () => {
+    mockEnv.SAMPLEX_API_KEY = "sk_bad_key";
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(makeResponse(401, "Unauthorized"));
+
+    const err = await rpc("some.procedure").catch((e: Error) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error).message).toContain("API key is invalid or expired");
+    expect((err as Error).message).toContain("SAMPLEX_API_KEY");
+    expect(mockClearCredentials).not.toHaveBeenCalled();
+  });
+
+  it("API key takes precedence over existing OAuth credentials", async () => {
+    mockEnv.SAMPLEX_API_KEY = "sk_priority_key";
+    mockLoadCredentials.mockReturnValue(validCreds()); // OAuth creds exist
+    const spy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(makeResponse(200, { ok: true }));
+
+    await rpc("site.deploy");
+
+    const [, init] = spy.mock.calls[0]!;
+    const headers = init?.headers as Record<string, string>;
+    expect(headers["x-api-key"]).toBe("sk_priority_key");
+    expect(headers["Authorization"]).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // rpcUpload()
 // ---------------------------------------------------------------------------
 describe("rpcUpload()", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
+    mockEnv.SAMPLEX_API_KEY = "";
   });
 
   it("throws 'Not logged in' when credentials are null", async () => {
@@ -216,12 +300,78 @@ describe("rpcUpload()", () => {
 });
 
 // ---------------------------------------------------------------------------
+// rpcUpload() — API key auth
+// ---------------------------------------------------------------------------
+describe("rpcUpload() with SAMPLEX_API_KEY", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.clearAllMocks();
+    mockEnv.SAMPLEX_API_KEY = "";
+  });
+
+  it("uses x-api-key header for uploads when SAMPLEX_API_KEY is set", async () => {
+    mockEnv.SAMPLEX_API_KEY = "sk_upload_key";
+    const spy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(makeResponse(200, { json: { id: "abc" }, meta: [] }));
+
+    const blob = new Blob(["file contents"], { type: "text/plain" });
+    await rpcUpload("site.upload", { blob, fieldName: "archive" }, { name: "test" });
+
+    const [, init] = spy.mock.calls[0]!;
+    const headers = init?.headers as Record<string, string>;
+    expect(headers["x-api-key"]).toBe("sk_upload_key");
+    expect(headers["Authorization"]).toBeUndefined();
+  });
+
+  it("on 401 with API key: throws API key error", async () => {
+    mockEnv.SAMPLEX_API_KEY = "sk_bad_key";
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(makeResponse(401, "Unauthorized"));
+
+    const file = { blob: new Blob(["data"]), fieldName: "file" };
+    const err = await rpcUpload("upload.file", file).catch((e: Error) => e);
+    expect((err as Error).message).toContain("API key is invalid or expired");
+    expect((err as Error).message).toContain("SAMPLEX_API_KEY");
+    expect(mockClearCredentials).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// rpc() / rpcUpload() — non-401 errors with API key
+// ---------------------------------------------------------------------------
+describe("non-401 errors with SAMPLEX_API_KEY", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.clearAllMocks();
+    mockEnv.SAMPLEX_API_KEY = "";
+  });
+
+  it("rpc: on 500 with API key, throws with response body text", async () => {
+    mockEnv.SAMPLEX_API_KEY = "sk_test_key_123";
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(makeResponse(500, "Internal Server Error"));
+
+    await expect(rpc("some.procedure")).rejects.toThrow("Internal Server Error");
+    expect(mockClearCredentials).not.toHaveBeenCalled();
+  });
+
+  it("rpcUpload: on 500 with API key, throws with response body text", async () => {
+    mockEnv.SAMPLEX_API_KEY = "sk_test_key_123";
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(makeResponse(500, "Internal Server Error"));
+
+    const file = { blob: new Blob(["data"]), fieldName: "file" };
+    await expect(rpcUpload("upload.file", file)).rejects.toThrow("Internal Server Error");
+    expect(mockClearCredentials).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Token refresh (getValidCredentials via rpc)
 // ---------------------------------------------------------------------------
 describe("token refresh", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
+    mockEnv.SAMPLEX_API_KEY = "";
   });
 
   it("uses token as-is when it is far from expiry", async () => {

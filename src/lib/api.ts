@@ -1,4 +1,5 @@
 import { loadCredentials, saveCredentials, clearCredentials } from "./config";
+import { env } from "./env";
 import { apiFetch, apiUrl, UPLOAD_TIMEOUT_MS } from "./http";
 import { log } from "./logger";
 import { CLI_VERSION } from "./version";
@@ -28,8 +29,14 @@ function handleResponseErrors(response: Response): void {
   checkUpgradeRequired(response);
 
   if (response.status === 401) {
-    clearCredentials();
-    throw new Error("Session expired. Run `samplex login` again.");
+    if (!env.SAMPLEX_API_KEY) {
+      clearCredentials();
+    }
+    throw new Error(
+      env.SAMPLEX_API_KEY
+        ? "API key is invalid or expired. Check your SAMPLEX_API_KEY environment variable."
+        : "Session expired. Run `samplex login` again.",
+    );
   }
 }
 
@@ -85,16 +92,25 @@ async function getValidCredentials() {
   }
 }
 
-async function requireCredentials() {
+async function requireAuth(): Promise<Record<string, string>> {
+  // API key takes precedence — no OAuth needed
+  if (env.SAMPLEX_API_KEY) {
+    log.debug("Using SAMPLEX_API_KEY for authentication");
+    return { "x-api-key": env.SAMPLEX_API_KEY };
+  }
+
+  // Fall back to OAuth credentials
   const credentials = await getValidCredentials();
   if (!credentials) {
-    throw new Error("Not logged in. Run `samplex login` first.");
+    throw new Error(
+      "Not logged in. Run `samplex login` or set the SAMPLEX_API_KEY environment variable.",
+    );
   }
-  return credentials;
+  return { Authorization: `Bearer ${credentials.accessToken}` };
 }
 
 export async function rpc<T = unknown>(procedure: string, input?: unknown): Promise<T> {
-  const credentials = await requireCredentials();
+  const authHeaders = await requireAuth();
 
   const path = procedure.replaceAll(".", "/");
   const url = apiUrl(`/api/rpc/api-reference/${path}`);
@@ -103,7 +119,7 @@ export async function rpc<T = unknown>(procedure: string, input?: unknown): Prom
   if (input !== undefined) log.debug("  input:", JSON.stringify(input));
 
   const headers: Record<string, string> = {
-    Authorization: `Bearer ${credentials.accessToken}`,
+    ...authHeaders,
   };
   let body: string | undefined;
 
@@ -136,7 +152,7 @@ export async function rpcUpload<T = unknown>(
   file: { blob: Blob; fieldName: string },
   input: Record<string, unknown> = {},
 ): Promise<T> {
-  const credentials = await requireCredentials();
+  const authHeaders = await requireAuth();
 
   const path = procedure.replaceAll(".", "/");
   const url = apiUrl(`/api/rpc/${path}`);
@@ -160,7 +176,7 @@ export async function rpcUpload<T = unknown>(
 
   const response = await apiFetch(url, {
     method: "POST",
-    headers: { Authorization: `Bearer ${credentials.accessToken}` },
+    headers: authHeaders,
     body: form,
     timeoutMs: UPLOAD_TIMEOUT_MS,
   });
