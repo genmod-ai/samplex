@@ -331,6 +331,35 @@ describe("rpcUpload() with SAMPLEX_API_KEY", () => {
     const file = { blob: new Blob(["data"]), fieldName: "file" };
     const err = await rpcUpload("upload.file", file).catch((e: Error) => e);
     expect((err as Error).message).toContain("API key is invalid or expired");
+    expect((err as Error).message).toContain("SAMPLEX_API_KEY");
+    expect(mockClearCredentials).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// rpc() / rpcUpload() — non-401 errors with API key
+// ---------------------------------------------------------------------------
+describe("non-401 errors with SAMPLEX_API_KEY", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.clearAllMocks();
+    mockEnv.SAMPLEX_API_KEY = "";
+  });
+
+  it("rpc: on 500 with API key, throws with response body text", async () => {
+    mockEnv.SAMPLEX_API_KEY = "sk_test_key_123";
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(makeResponse(500, "Internal Server Error"));
+
+    await expect(rpc("some.procedure")).rejects.toThrow("Internal Server Error");
+    expect(mockClearCredentials).not.toHaveBeenCalled();
+  });
+
+  it("rpcUpload: on 500 with API key, throws with response body text", async () => {
+    mockEnv.SAMPLEX_API_KEY = "sk_test_key_123";
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(makeResponse(500, "Internal Server Error"));
+
+    const file = { blob: new Blob(["data"]), fieldName: "file" };
+    await expect(rpcUpload("upload.file", file)).rejects.toThrow("Internal Server Error");
     expect(mockClearCredentials).not.toHaveBeenCalled();
   });
 });

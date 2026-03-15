@@ -40,13 +40,6 @@ function handleResponseErrors(response: Response): void {
   }
 }
 
-function getAuthHeaders(): Record<string, string> {
-  if (env.SAMPLEX_API_KEY) {
-    return { "x-api-key": env.SAMPLEX_API_KEY };
-  }
-  throw new Error("No auth method available");
-}
-
 async function getValidCredentials() {
   const credentials = loadCredentials();
   if (!credentials) return null;
@@ -103,7 +96,7 @@ async function requireAuth(): Promise<Record<string, string>> {
   // API key takes precedence — no OAuth needed
   if (env.SAMPLEX_API_KEY) {
     log.debug("Using SAMPLEX_API_KEY for authentication");
-    return getAuthHeaders();
+    return { "x-api-key": env.SAMPLEX_API_KEY };
   }
 
   // Fall back to OAuth credentials
