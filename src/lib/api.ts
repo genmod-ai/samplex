@@ -29,20 +29,20 @@ function handleResponseErrors(response: Response): void {
   checkUpgradeRequired(response);
 
   if (response.status === 401) {
-    if (!env.SAMPLE_API_KEY) {
+    if (!env.SAMPLEX_API_KEY) {
       clearCredentials();
     }
     throw new Error(
-      env.SAMPLE_API_KEY
-        ? "API key is invalid or expired. Check your SAMPLE_API_KEY environment variable."
+      env.SAMPLEX_API_KEY
+        ? "API key is invalid or expired. Check your SAMPLEX_API_KEY environment variable."
         : "Session expired. Run `samplex login` again.",
     );
   }
 }
 
 function getAuthHeaders(): Record<string, string> {
-  if (env.SAMPLE_API_KEY) {
-    return { "x-api-key": env.SAMPLE_API_KEY };
+  if (env.SAMPLEX_API_KEY) {
+    return { "x-api-key": env.SAMPLEX_API_KEY };
   }
   throw new Error("No auth method available");
 }
@@ -101,8 +101,8 @@ async function getValidCredentials() {
 
 async function requireAuth(): Promise<Record<string, string>> {
   // API key takes precedence — no OAuth needed
-  if (env.SAMPLE_API_KEY) {
-    log.debug("Using SAMPLE_API_KEY for authentication");
+  if (env.SAMPLEX_API_KEY) {
+    log.debug("Using SAMPLEX_API_KEY for authentication");
     return getAuthHeaders();
   }
 
@@ -110,7 +110,7 @@ async function requireAuth(): Promise<Record<string, string>> {
   const credentials = await getValidCredentials();
   if (!credentials) {
     throw new Error(
-      "Not logged in. Run `samplex login` or set the SAMPLE_API_KEY environment variable.",
+      "Not logged in. Run `samplex login` or set the SAMPLEX_API_KEY environment variable.",
     );
   }
   return { Authorization: `Bearer ${credentials.accessToken}` };

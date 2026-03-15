@@ -4,7 +4,7 @@ const { mockEnv } = vi.hoisted(() => ({
   mockEnv: {
     SAMPLEX_API_URL: "http://localhost:9999",
     SAMPLEX_LOG_LEVEL: "silent",
-    SAMPLE_API_KEY: "",
+    SAMPLEX_API_KEY: "",
   },
 }));
 
@@ -72,7 +72,7 @@ describe("rpc()", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
-    mockEnv.SAMPLE_API_KEY = "";
+    mockEnv.SAMPLEX_API_KEY = "";
   });
 
   it("throws 'Not logged in' with API key hint when credentials are null", async () => {
@@ -80,7 +80,7 @@ describe("rpc()", () => {
     const err = await rpc("some.procedure").catch((e: Error) => e);
     expect(err).toBeInstanceOf(Error);
     expect((err as Error).message).toContain("Not logged in");
-    expect((err as Error).message).toContain("SAMPLE_API_KEY");
+    expect((err as Error).message).toContain("SAMPLEX_API_KEY");
   });
 
   it("makes an authenticated POST with Bearer token and correct URL", async () => {
@@ -151,17 +151,17 @@ describe("rpc()", () => {
 });
 
 // ---------------------------------------------------------------------------
-// rpc() — API key auth (SAMPLE_API_KEY set)
+// rpc() — API key auth (SAMPLEX_API_KEY set)
 // ---------------------------------------------------------------------------
-describe("rpc() with SAMPLE_API_KEY", () => {
+describe("rpc() with SAMPLEX_API_KEY", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
-    mockEnv.SAMPLE_API_KEY = "";
+    mockEnv.SAMPLEX_API_KEY = "";
   });
 
-  it("uses x-api-key header instead of Bearer token when SAMPLE_API_KEY is set", async () => {
-    mockEnv.SAMPLE_API_KEY = "sk_test_key_123";
+  it("uses x-api-key header instead of Bearer token when SAMPLEX_API_KEY is set", async () => {
+    mockEnv.SAMPLEX_API_KEY = "sk_test_key_123";
     const spy = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(makeResponse(200, { ok: true }));
@@ -175,7 +175,7 @@ describe("rpc() with SAMPLE_API_KEY", () => {
   });
 
   it("does not check or require OAuth credentials when API key is set", async () => {
-    mockEnv.SAMPLE_API_KEY = "sk_test_key_123";
+    mockEnv.SAMPLEX_API_KEY = "sk_test_key_123";
     mockLoadCredentials.mockReturnValue(null); // No OAuth creds
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(makeResponse(200, { ok: true }));
 
@@ -185,7 +185,7 @@ describe("rpc() with SAMPLE_API_KEY", () => {
   });
 
   it("does not attempt token refresh when API key is set", async () => {
-    mockEnv.SAMPLE_API_KEY = "sk_test_key_123";
+    mockEnv.SAMPLEX_API_KEY = "sk_test_key_123";
     const spy = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(makeResponse(200, { data: "ok" }));
@@ -198,18 +198,18 @@ describe("rpc() with SAMPLE_API_KEY", () => {
   });
 
   it("on 401 with API key: throws API key error and does not clear credentials", async () => {
-    mockEnv.SAMPLE_API_KEY = "sk_bad_key";
+    mockEnv.SAMPLEX_API_KEY = "sk_bad_key";
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(makeResponse(401, "Unauthorized"));
 
     const err = await rpc("some.procedure").catch((e: Error) => e);
     expect(err).toBeInstanceOf(Error);
     expect((err as Error).message).toContain("API key is invalid or expired");
-    expect((err as Error).message).toContain("SAMPLE_API_KEY");
+    expect((err as Error).message).toContain("SAMPLEX_API_KEY");
     expect(mockClearCredentials).not.toHaveBeenCalled();
   });
 
   it("API key takes precedence over existing OAuth credentials", async () => {
-    mockEnv.SAMPLE_API_KEY = "sk_priority_key";
+    mockEnv.SAMPLEX_API_KEY = "sk_priority_key";
     mockLoadCredentials.mockReturnValue(validCreds()); // OAuth creds exist
     const spy = vi
       .spyOn(globalThis, "fetch")
@@ -231,7 +231,7 @@ describe("rpcUpload()", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
-    mockEnv.SAMPLE_API_KEY = "";
+    mockEnv.SAMPLEX_API_KEY = "";
   });
 
   it("throws 'Not logged in' when credentials are null", async () => {
@@ -302,15 +302,15 @@ describe("rpcUpload()", () => {
 // ---------------------------------------------------------------------------
 // rpcUpload() — API key auth
 // ---------------------------------------------------------------------------
-describe("rpcUpload() with SAMPLE_API_KEY", () => {
+describe("rpcUpload() with SAMPLEX_API_KEY", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
-    mockEnv.SAMPLE_API_KEY = "";
+    mockEnv.SAMPLEX_API_KEY = "";
   });
 
-  it("uses x-api-key header for uploads when SAMPLE_API_KEY is set", async () => {
-    mockEnv.SAMPLE_API_KEY = "sk_upload_key";
+  it("uses x-api-key header for uploads when SAMPLEX_API_KEY is set", async () => {
+    mockEnv.SAMPLEX_API_KEY = "sk_upload_key";
     const spy = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(makeResponse(200, { json: { id: "abc" }, meta: [] }));
@@ -325,7 +325,7 @@ describe("rpcUpload() with SAMPLE_API_KEY", () => {
   });
 
   it("on 401 with API key: throws API key error", async () => {
-    mockEnv.SAMPLE_API_KEY = "sk_bad_key";
+    mockEnv.SAMPLEX_API_KEY = "sk_bad_key";
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(makeResponse(401, "Unauthorized"));
 
     const file = { blob: new Blob(["data"]), fieldName: "file" };
@@ -342,7 +342,7 @@ describe("token refresh", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
-    mockEnv.SAMPLE_API_KEY = "";
+    mockEnv.SAMPLEX_API_KEY = "";
   });
 
   it("uses token as-is when it is far from expiry", async () => {
